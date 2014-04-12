@@ -1,0 +1,1 @@
+*Redmine Cpp* is a library for communicating with a Redmine project management application.
