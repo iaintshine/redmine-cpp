@@ -24,7 +24,7 @@ public:
 };
 
 const utility::string_t redmine_creds::base_url     = U("http://redmine.realitypump.com");
-const utility::string_t redmine_creds::users_url    = U("/users");
+const utility::string_t redmine_creds::users_url    = U("/users.json");
 const utility::string_t redmine_creds::api_key      = U("9a7c782d37c9c1abf3e86bdd668f26769ead54dd");
 const utility::string_t redmine_creds::api_key_header = U("X-Redmine-API-Key");
 
@@ -37,10 +37,10 @@ public:
     //
     // query all users
     //
-    static void users(const uint32_t offset = 0UL, const uint32_t limit = 25UL);
+    static pplx::task<void> users(const uint32_t offset = 0UL, const uint32_t limit = 25UL);
 };
 
-void redmine::users(const uint32_t offset, const uint32_t limit)
+pplx::task<void> redmine::users(const uint32_t offset, const uint32_t limit)
 {
     // validation
     if (limit > 100UL)
@@ -62,12 +62,29 @@ void redmine::users(const uint32_t offset, const uint32_t limit)
         request.headers().add(header_names::accept, U("application/json"));
         request.headers().add(redmine_creds::api_key_header, redmine_creds::api_key);
 
-    client
+    return client
         // send the HTTP request asynchronous 
         .request(request)
         // continue when the response is available
         .then([](http_response response)
         {
+#ifndef NDEBUG
+           
+            //
+            // Debug show response headers 
+            //
+            for (auto h : response.headers())
+            {
+                ucout << h.first << " : " << h.second << endl;
+            }
+
+            //
+            // Debug show response body, it adavences internal stream pointer so it won't be able to extract values twice
+            //
+            // auto body = response.extract_string().get();
+            // ucout << body << endl;
+#endif
+
             return response.extract_json();
         })
         // continue when the son value is available
@@ -75,23 +92,32 @@ void redmine::users(const uint32_t offset, const uint32_t limit)
         {
             if (!users_json.is_null())
             {
-                auto users = users_json[U("users")];
-                for (auto& u : users.as_array())
+                try
                 {
-                    auto id         = u[U("id")];
-                    auto login      = u[U("login")];
-                    auto first_name = u[U("firstname")];
-                    auto last_name  = u[U("lastname")];
+                    //
+                    // Display all users
+                    //
+                    auto users = users_json[U("users")];
+                    for (auto& u : users.as_array())
+                    {
+                        auto id         = u[U("id")];
+                        auto login      = u[U("login")];
+                        auto first_name = u[U("firstname")];
+                        auto last_name  = u[U("lastname")];
 
-                    ucout << id.as_string() << "|" 
-                          << login.as_string() << "|"
-                          << first_name.as_string() << "|"
-                          << last_name.as_string() << "|"
-                          << endl;
+                        ucout << id.as_integer() << "|" 
+                              << login.as_string() << "|"
+                              << first_name.as_string() << "|"
+                              << last_name.as_string()
+                              << endl;
+                    }
+                }
+                catch (exception & e)
+                {
+                    ucerr << U("error occurred during data extraction: ") << e.what() << endl;
                 }
             }
-        })
-        .wait();
+        });
 }
 
 #ifdef _MS_WINDOW
@@ -100,7 +126,7 @@ int wmain(int argc, wchar_t *args[])
 int main(int argc, char *args[])
 #endif
 {
-    redmine::users();
+    redmine::users().wait();
 
     return 0;
 }
