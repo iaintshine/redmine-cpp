@@ -25,11 +25,11 @@ public:
     static const utility::string_t api_key_header;
 };
 
-const utility::string_t redmine_creds::base_url     = U("http://redmine.realitypump.com");
+const utility::string_t redmine_creds::base_url     = U("http://redmine.example.com");
 const utility::string_t redmine_creds::users_url    = U("/users.json");
 const utility::string_t redmine_creds::projects_url = U("/projects/");
 
-const utility::string_t redmine_creds::api_key      = U("9a7c782d37c9c1abf3e86bdd668f26769ead54dd");
+const utility::string_t redmine_creds::api_key      = U("API_KEY");
 const utility::string_t redmine_creds::api_key_header = U("X-Redmine-API-Key");
 
 //
